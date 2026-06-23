@@ -57,7 +57,9 @@ class DiscreteThompsonSampling(BaseAgent):
             alpha: Array,
             outcomes: Array
     ) -> None:
-        assert np.all(alpha > 0)
+        alpha = jnp.asarray(alpha)
+        outcomes = jnp.asarray(outcomes)
+        assert np.all(np.asarray(alpha) > 0)
 
         self.n_arms = n_arms
 
