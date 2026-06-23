@@ -6,7 +6,7 @@ import numpy as np
 
 from reinforced_lib import RLib
 from reinforced_lib.exts import BasicMab
-from reinforced_lib.agents.mab.discrete_thompson_sampling import DiscreteThompsonSampling
+from reinforced_lib.agents.mab import DiscreteThompsonSampling
 
 
 OUTCOMES = jnp.array([0.0, 1.0, 2.0])

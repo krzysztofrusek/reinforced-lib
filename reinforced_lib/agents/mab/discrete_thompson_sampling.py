@@ -3,7 +3,6 @@ from functools import partial
 import gymnasium as gym
 import jax
 import jax.numpy as jnp
-import numpy as np
 from chex import dataclass, Array, PRNGKey, Scalar
 
 from reinforced_lib.agents import BaseAgent, AgentState
@@ -59,11 +58,11 @@ class DiscreteThompsonSampling(BaseAgent):
     ) -> None:
         alpha = jnp.asarray(alpha)
         outcomes = jnp.asarray(outcomes)
-        assert np.all(np.asarray(alpha) > 0)
+        assert jnp.all(alpha > 0)
 
         self.n_arms = n_arms
 
-        self.init = jax.jit(partial(self.init, n_arms=self.n_arms, alpha=alpha, outcomes=outcomes))
+        self.init = jax.jit(partial(self.init, n_arms=self.n_arms, alpha=alpha))
         self.update = jax.jit(partial(self.update, outcomes=outcomes))
         self.sample = jax.jit(partial(self.sample, outcomes=outcomes))
 
@@ -71,6 +70,8 @@ class DiscreteThompsonSampling(BaseAgent):
     def parameter_space() -> gym.spaces.Dict:
         return gym.spaces.Dict({
             'n_arms': gym.spaces.Box(1, jnp.inf, (1,), int),
+            'alpha': gym.spaces.Sequence(gym.spaces.Box(0.0, jnp.inf, (), float)),
+            'outcomes': gym.spaces.Sequence(gym.spaces.Box(-jnp.inf, jnp.inf, (), float)),
         })
 
     @property
@@ -93,7 +94,6 @@ class DiscreteThompsonSampling(BaseAgent):
             key: PRNGKey,
             n_arms: int,
             alpha: Array,
-            outcomes: Array
     ) -> DiscreteThompsonSamplingState:
         r"""
         Creates and initializes an instance of the discrete Thompson sampling agent for ``n_arms`` arms with the
@@ -108,8 +108,6 @@ class DiscreteThompsonSampling(BaseAgent):
         alpha : Array
             Initial Dirichlet concentration parameter of shape ``(n_outcomes,)``. See also
             ``DiscreteThompsonSamplingState`` for interpretation.
-        outcomes : Array
-            Array of shape ``(n_outcomes,)`` with the reward values.
 
         Returns
         -------
@@ -117,9 +115,7 @@ class DiscreteThompsonSampling(BaseAgent):
             Initial state of the discrete Thompson sampling agent.
         """
 
-        return DiscreteThompsonSamplingState(
-            alpha=jnp.tile(alpha, (n_arms, 1))
-        )
+        return DiscreteThompsonSamplingState(alpha=jnp.tile(alpha, (n_arms, 1)))
 
     @staticmethod
     def update(
@@ -159,9 +155,7 @@ class DiscreteThompsonSampling(BaseAgent):
 
         update = (reward == outcomes).astype(state.alpha.dtype)
         alpha = state.alpha.at[action].add(update)
-        return DiscreteThompsonSamplingState(
-            alpha=alpha
-        )
+        return DiscreteThompsonSamplingState(alpha=alpha)
 
     @staticmethod
     def sample(state: DiscreteThompsonSamplingState, key: PRNGKey, outcomes: Array) -> int:
